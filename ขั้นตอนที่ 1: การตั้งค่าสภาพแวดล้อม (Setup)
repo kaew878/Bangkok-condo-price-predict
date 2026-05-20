@@ -1,2 +1,0 @@
-ขั้นตอนที่ 1: การตั้งค่าสภาพแวดล้อม (Setup)
-โค้ดเริ่มจากติดตั้งไลบรารีหลัก ได้แก่ xgboost (โมเดล Gradient Boosting), category_encoders (สำหรับ Target Encoding), optuna (Hyperparameter tuning) และ shap (Model interpretation) จากนั้นนำเข้าโมดูลทั้งหมดสำหรับการจัดการข้อมูล (pandas, numpy), การสร้างภาพ (matplotlib, seaborn), การทำ Cross-validation (KFold), เมตริก (RMSE, MAE, R²) และ KMeans Clustering พร้อมตั้งค่า RANDOM_STATE = 42 เพื่อให้ผลลัพธ์ทำซ้ำได้
