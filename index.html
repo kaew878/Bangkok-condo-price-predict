@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang='th'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Bangkok Condo Price Predictor</title>
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css'>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header-bg { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 30px; border-radius: 15px 15px 0 0; }
+        #loading { display: block; }
+        #main-content { display: none; }
+    </style>
+</head>
+<body>
+    <div class='container my-5'>
+        <div class='card'>
+            <div class='header-bg text-center'>
+                <h2>🏢 ระบบประเมินราคาคอนโดกรุงเทพฯ</h2>
+                <p>AI-Powered Real Estate Valuation</p>
+            </div>
+            <div class='card-body p-4'>
+                <div id="loading" class="text-center">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2">กำลังโหลดระบบ AI... กรุณารอสักครู่</p>
+                </div>
+
+                <div id="main-content">
+                    <form id="prediction-form">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">เขต (District)</label>
+                                <select id="district" class="form-select"></select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">พื้นที่โครงการ (ตร.ม.)</label>
+                                <input type="number" id="proj_area" class="form-control" value="4364">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">จำนวนชั้น</label>
+                                <input type="number" id="nbr_floors" class="form-control" value="9">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">จำนวนยูนิต</label>
+                                <input type="number" id="units" class="form-control" value="248">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">อายุตึก (ปี)</label>
+                                <input type="number" id="bld_age" class="form-control" value="9">
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 text-center">
+                            <button type="button" id="predict-btn" class="btn btn-primary btn-lg px-5">ทำนายราคา</button>
+                        </div>
+                    </form>
+
+                    <div id="result" class="mt-4 text-center d-none">
+                        <div class="alert alert-success">
+                            <h4>ราคาประเมินโดยประมาณ</h4>
+                            <h2 id="price-output" class="display-4 fw-bold text-primary">0.00</h2>
+                            <p>บาท / ตารางเมตร</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <py-config>
+        packages = ["pandas", "numpy", "scikit-learn", "xgboost"]
+        [[fetch]]
+        files = ["xgb_model.pkl", "transformer.pkl", "district_mapping.csv"]
+    </py-config>
+
+    <script type="py">
+        import pandas as pd
+        import numpy as np
+        import pickle
+        from pyscript import document
+        from pyodide.ffi import create_proxy
+
+        # Load components
+        model = pickle.load(open('xgb_model.pkl', 'rb'))
+        pt = pickle.load(open('transformer.pkl', 'rb'))
+        dist_ref = pd.read_csv('district_mapping.csv')
+
+        # Setup Dropdown
+        select = document.getElementById("district")
+        for d in sorted(dist_ref['district'].unique()):
+            opt = document.createElement("option")
+            opt.value, opt.text = d, d
+            if d == 'Watthana': opt.selected = True
+            select.appendChild(opt)
+
+        document.getElementById("loading").style.display = "none"
+        document.getElementById("main-content").style.display = "block"
+
+        async def run_prediction(event):
+            dist_name = document.getElementById("district").value
+            dist_enc = float(dist_ref[dist_ref['district'] == dist_name]['target_encoded_value'].values[0])
+            
+            feat_vals = [float(document.getElementById("proj_area").value), 1.0, float(document.getElementById("nbr_floors").value), 
+                         float(document.getElementById("units").value), 1.2, float(document.getElementById("bld_age").value), 0.7, 1.7, 0.4, 0.48, 
+                         0.52, 0.54, 1.2, 7.8, 6.7, 8.4, 0.82, dist_enc]
+            
+            cols = ['proj_area', 'nbr_buildings', 'nbr_floors', 'units', 'hospital', 'bld_age', 
+                    'dist_shop_1', 'dist_shop_5', 'dist_food_3', 'dist_food_4', 'dist_food_5', 
+                    'dist_school_min', 'dist_tran_min', 'dist_to_siam', 'dist_to_asoke', 
+                    'dist_to_silom', 'weighted_amenity_score', 'district_encoded']
+            
+            df_input = pd.DataFrame([feat_vals], columns=cols)
+            pred_trans = model.predict(df_input)
+            price = pt.inverse_transform(pred_trans.reshape(-1, 1))[0][0]
+            
+            document.getElementById("result").classList.remove("d-none")
+            document.getElementById("price-output").innerText = f"{price:,.2f}"
+
+        predict_btn = document.getElementById("predict-btn")
+        predict_btn.addEventListener("click", create_proxy(run_prediction))
+    </script>
+</body>
+</html>
