@@ -10,14 +10,14 @@
     <style>
         body { background-color: #f0f2f5; font-family: 'Kanit', sans-serif; }
         .main-card { max-width: 800px; margin: 50px auto; border-radius: 20px; border: none; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        .header { background: #1a73e8; color: white; padding: 40px; text-center; }
-        .result-box { background: #e8f0fe; border-radius: 10px; padding: 20px; display: none; }
+        .header { background: #1a73e8; color: white; padding: 40px; text-align: center; }
+        .result-box { background: #e8f0fe; border-radius: 10px; padding: 20px; display: none; margin-top: 20px; }
     </style>
 </head>
 <body>
     <div class='container'>
         <div class='card main-card'>
-            <div class='header text-center'>
+            <div class='header'>
                 <h1 class='fw-bold'>🏢 ระบบประเมินราคาคอนโด</h1>
                 <p>คำนวณราคาด้วย AI (XGBoost 1.6.1) บนเบราว์เซอร์</p>
             </div>
@@ -30,31 +30,31 @@
                 <div id="app-content" style="display:none;">
                     <form id="predict-form" class="row g-3">
                         <div class="col-md-12">
-                            <label class="form-label">ระบุเขต</label>
+                            <label class="form-label fw-bold">เลือกเขต</label>
                             <select id="district" class="form-select form-select-lg"></select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">พื้นที่โครงการ (ตร.ม.)</label>
-                            <input type="number" id="proj_area" class="form-control" value="4000">
+                            <label class="form-label fw-bold">พื้นที่โครงการ (ตร.ม.)</label>
+                            <input type="number" id="proj_area" class="form-control" value="4364">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">จำนวนชั้น</label>
-                            <input type="number" id="nbr_floors" class="form-control" value="8">
+                            <label class="form-label fw-bold">จำนวนชั้น</label>
+                            <input type="number" id="nbr_floors" class="form-control" value="9">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">จำนวนยูนิตรวม</label>
-                            <input type="number" id="units" class="form-control" value="200">
+                            <label class="form-label fw-bold">จำนวนยูนิตรวม</label>
+                            <input type="number" id="units" class="form-control" value="248">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">อายุอาคาร (ปี)</label>
-                            <input type="number" id="bld_age" class="form-control" value="5">
+                            <label class="form-label fw-bold">อายุอาคาร (ปี)</label>
+                            <input type="number" id="bld_age" class="form-control" value="9">
                         </div>
                         <div class="col-12 mt-4">
                             <button type="button" id="btn-predict" class="btn btn-primary btn-lg w-100">วิเคราะห์ราคา</button>
                         </div>
                     </form>
 
-                    <div id="result" class="result-box mt-4 text-center">
+                    <div id="result" class="result-box text-center">
                         <h5 class='text-secondary'>ราคาประเมินโดยประมาณ</h5>
                         <h1 id="price-display" class='text-primary fw-bold display-4'>0.00</h1>
                         <p class='mb-0'>บาท / ตารางเมตร</p>
@@ -77,36 +77,33 @@
         from pyscript import document
         from pyodide.ffi import create_proxy
 
-        # Load models
         try:
             model = pickle.load(open('xgb_model.pkl', 'rb'))
             pt = pickle.load(open('transformer.pkl', 'rb'))
             dist_data = pd.read_csv('district_mapping.csv')
 
-            # Initialize Dropdown
             el_dist = document.getElementById("district")
             for d in sorted(dist_data['district'].unique()):
                 opt = document.createElement("option")
                 opt.value = d
                 opt.text = d
+                if d == 'Watthana': opt.selected = True
                 el_dist.appendChild(opt)
 
             document.getElementById("loading-state").style.display = "none"
             document.getElementById("app-content").style.display = "block"
         except Exception as e:
-            print(f"Error loading models: {e}")
+            print(f"Error: {e}")
 
         async def handle_predict(evt):
             dist_name = document.getElementById("district").value
             dist_val = float(dist_data[dist_data['district'] == dist_name]['target_encoded_value'].values[0])
             
-            # กำหนดข้อมูลตามลำดับที่ใช้เทรน (18 Features)
-            feature_order = [
-                'proj_area', 'nbr_buildings', 'nbr_floors', 'units', 'hospital', 'bld_age', 
-                'dist_shop_1', 'dist_shop_5', 'dist_food_3', 'dist_food_4', 'dist_food_5', 
-                'dist_school_min', 'dist_tran_min', 'dist_to_siam', 'dist_to_asoke', 
-                'dist_to_silom', 'weighted_amenity_score', 'district_encoded'
-            ]
+            # Order must match training: 18 features
+            feature_order = ['proj_area', 'nbr_buildings', 'nbr_floors', 'units', 'hospital', 'bld_age', 
+                             'dist_shop_1', 'dist_shop_5', 'dist_food_3', 'dist_food_4', 'dist_food_5', 
+                             'dist_school_min', 'dist_tran_min', 'dist_to_siam', 'dist_to_asoke', 
+                             'dist_to_silom', 'weighted_amenity_score', 'district_encoded']
             
             input_values = [
                 float(document.getElementById("proj_area").value), 1.0, float(document.getElementById("nbr_floors").value),
@@ -114,8 +111,8 @@
                 0.7, 1.7, 0.4, 0.48, 0.52, 0.54, 1.2, 7.8, 6.7, 8.4, 0.82, dist_val
             ]
             
-            df = pd.DataFrame([input_values], columns=feature_order)
-            pred = model.predict(df)
+            df_p = pd.DataFrame([input_values], columns=feature_order)
+            pred = model.predict(df_p)
             final_price = pt.inverse_transform(pred.reshape(-1, 1))[0][0]
 
             document.getElementById("result").style.display = "block"
