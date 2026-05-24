@@ -6,8 +6,6 @@ Note :
   
 3. The project developer utilized AI to assist in generating nearly all of the code. The developer’s primary role was to design the overall approach, define the workflow and underlying principles for each stage of the project, and review the generated code to ensure that it aligned with the intended objectives, methodologies, and project requirements.
 
-4. Most of all describtion is Thai , so if you do not understand Thai this is 2026 and we have AI :)
-
 
 data set : https://www.kaggle.com/datasets/thedevastator/predicting-bangkok-condominium-prices-using-web
 
@@ -28,7 +26,7 @@ XGBoost เหมาะกับการประเมินราคาอส
 สรุป:
 XGBoost เหมาะ เพราะ “ราคาบ้านในกรุงเทพมีหลายปัจจัยที่สัมพันธ์กันแบบซับซ้อน” และ model นี้เก่งมากกับข้อมูลตารางที่ nonlinear และ noisy แบบอสังหาไทย
 
-# 📌 สรุปภาพรวมโปรเจค: การพยากรณ์ราคาบ้าน/คอนโดในกรุงเทพฯ ด้วย XGBoost
+# สรุปภาพรวมโปรเจค: การพยากรณ์ราคาบ้าน/คอนโดในกรุงเทพฯ ด้วย XGBoost
 
 โปรเจคนี้มีวัตถุประสงค์เพื่อสร้างโมเดล Machine Learning ที่มีความแม่นยำสูงในการประเมินราคาคอนโดมิเนียม (บาท/ตร.ม.) โดยครอบคลุมขั้นตอนสำคัญดังนี้:
 
